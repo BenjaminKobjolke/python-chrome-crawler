@@ -74,6 +74,10 @@ class ChromeCrawler:
         sleep(self._config.settle_seconds)
         return driver.page_source
 
+    def current_html(self) -> str:
+        """Re-read the current page without navigating (for JS-still-rendering polls)."""
+        return self._ensure_driver().page_source
+
     def quit(self) -> None:
         if self._driver is not None:
             try:
