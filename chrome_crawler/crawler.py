@@ -28,7 +28,11 @@ class ChromeCrawlerConfig:
     window_size: str = "1024,720"
     use_bundled_extensions: bool = True  # cookies.crx (consent dismiss) + ublock.crx
     extra_extensions: tuple[str, ...] = ()
-    proxy: str | None = None  # --proxy-server value; Chrome ignores user:pass credentials
+    proxy: str | None = None  # --proxy-server value (scheme://host:port, no credentials)
+    # --proxy-server ignores user:pass, so credentials are answered via a BiDi
+    # network.authRequired handler (enable_bidi is set automatically when these are set).
+    proxy_user: str = ""
+    proxy_password: str = ""
     settle_seconds: float = 3.0  # let extensions dismiss consent/popups after load
     # Chrome 137+ branded builds refuse chromedriver's extension install, so default to
     # Chrome for Testing (Selenium Manager downloads + caches it). None = installed Chrome.
@@ -48,6 +52,8 @@ def build_options(config: ChromeCrawlerConfig) -> Options:
         options.add_argument("--headless=new")
     if config.proxy:
         options.add_argument(f"--proxy-server={config.proxy}")
+        if config.proxy_user:
+            options.enable_bidi = True
     for extension in extension_paths(config):
         options.add_extension(extension)
     return options
@@ -100,6 +106,10 @@ class ChromeCrawler:
                 "Page.addScriptToEvaluateOnNewDocument",
                 {"source": "Object.defineProperty(navigator,'webdriver',{get:()=>undefined})"},
             )
+            if self._config.proxy and self._config.proxy_user:
+                self._driver.network.add_auth_handler(
+                    self._config.proxy_user, self._config.proxy_password
+                )
         return self._driver
 
     def __enter__(self) -> ChromeCrawler:
