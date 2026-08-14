@@ -3,10 +3,15 @@
 Selenium Chrome crawler that returns rendered page HTML. Extracted from
 ai-chat-data-server's `ChromeWebCrawler`, generalized for reuse.
 
-- Bundled extensions: "I don't care about cookies" (auto-dismisses consent banners,
-  e.g. Google's consent wall) and uBlock Origin.
+- Bundled extensions (Manifest V3): "I still don't care about cookies" (auto-dismisses
+  consent banners, e.g. Google's consent wall) and uBlock Origin Lite.
+  Details: [docs/EXTENSIONS.md](docs/EXTENSIONS.md).
 - Selenium Manager auto-downloads the matching chromedriver (no manual exe needed);
   an explicit `driver_path` is still supported.
+- Runs Chrome for Testing by default (`browser_version="stable"`, auto-downloaded and
+  cached by Selenium Manager) — regular Chrome 137+ refuses chromedriver-installed
+  extensions. Set `browser_version=None` to use the installed Chrome (extensions
+  won't load there).
 - Settle wait after each page load so extensions can dismiss popups.
 - Retry-once on a dead driver session.
 
@@ -17,9 +22,20 @@ ai-chat-data-server's `ChromeWebCrawler`, generalized for reuse.
 
 ## Installation
 
+As a dependency in another project:
+
 ```bash
 uv add "git+https://github.com/BenjaminKobjolke/python-chrome-crawler.git"
 ```
+
+For local development, clone the repo and run:
+
+```bat
+install.bat
+```
+
+This runs `uv sync` (creates `.venv`, installs dependencies) and then
+`tools\update_extensions.bat` to download the latest bundled extensions.
 
 ## Usage
 

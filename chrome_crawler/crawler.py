@@ -1,8 +1,9 @@
 """Chrome driver lifecycle and rendered-HTML fetching.
 
 Extracted from ai-chat-data-server's ChromeWebCrawler: headed Chrome with the
-bundled "I don't care about cookies" (consent auto-dismiss) and uBlock Origin
-extensions, a settle wait after page load, and retry-once on a dead driver.
+bundled "I still don't care about cookies" (consent auto-dismiss) and uBlock
+Origin extensions, a settle wait after page load, and
+retry-once on a dead driver.
 """
 from __future__ import annotations
 
@@ -29,6 +30,9 @@ class ChromeCrawlerConfig:
     extra_extensions: tuple[str, ...] = ()
     proxy: str | None = None  # --proxy-server value; Chrome ignores user:pass credentials
     settle_seconds: float = 3.0  # let extensions dismiss consent/popups after load
+    # Chrome 137+ branded builds refuse chromedriver's extension install, so default to
+    # Chrome for Testing (Selenium Manager downloads + caches it). None = installed Chrome.
+    browser_version: str | None = "stable"
 
 
 def build_options(config: ChromeCrawlerConfig) -> Options:
@@ -38,6 +42,8 @@ def build_options(config: ChromeCrawlerConfig) -> Options:
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
+    if config.browser_version:
+        options.browser_version = config.browser_version
     if config.headless:
         options.add_argument("--headless=new")
     if config.proxy:
