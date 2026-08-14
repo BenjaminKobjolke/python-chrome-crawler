@@ -4,6 +4,8 @@ import io
 import json
 import zipfile
 
+import pytest
+
 import hatch_build
 
 
@@ -21,6 +23,13 @@ def test_manifest_version_reads_plain_zip() -> None:
 def test_manifest_version_skips_crx_header() -> None:
     # crx files prefix the zip payload with a binary header
     assert hatch_build.manifest_version(b"Cr24\x00\x01" + _zip_with_manifest(2)) == 2
+
+
+def test_save_rejects_mv2(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(hatch_build, "fetch", lambda url: _zip_with_manifest(2))
+    with pytest.raises(RuntimeError, match="MV2"):
+        hatch_build.save(tmp_path, "ublock.crx", "http://example.invalid")
+    assert not (tmp_path / "ublock.crx").exists()
 
 
 def test_download_extensions_skips_when_present(tmp_path, monkeypatch) -> None:

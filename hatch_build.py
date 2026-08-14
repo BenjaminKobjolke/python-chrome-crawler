@@ -7,7 +7,8 @@ pyproject.toml force-includes them in the wheel.
 
 - cookies.crx: I Still Don't Care About Cookies — the release ships a plain zip
   (ISDCAC-chrome-source.zip); renaming it to .crx is enough for add_extension().
-- ublock.crx: uBlock Origin packed as crx by imputnet/ublock-origin-crx.
+- ublock.crx: uBlock Origin Lite (MV3) straight from the Chrome Web Store crx
+  endpoint. Full uBlock Origin is MV2 and no Chrome build loads MV2 anymore.
 
 Stdlib only: build hooks cannot pull extra dependencies without
 require-runtime-dependencies gymnastics.
@@ -31,7 +32,11 @@ ISDCAC_URL = (
     "https://github.com/OhMyGuus/I-Still-Dont-Care-About-Cookies"
     "/releases/latest/download/ISDCAC-chrome-source.zip"
 )
-UBLOCK_API = "https://api.github.com/repos/imputnet/ublock-origin-crx/releases/latest"
+UBLOCK_URL = (
+    "https://clients2.google.com/service/update2/crx"
+    "?response=redirect&prodversion=152.0&acceptformat=crx3"
+    "&x=id%3Dddkjiahejlhfcafbddmgiahcphecmpfh%26uc"  # uBlock Origin Lite
+)
 
 
 def fetch(url: str) -> bytes:
@@ -47,11 +52,11 @@ def manifest_version(data: bytes) -> int:
 def save(target_dir: Path, name: str, url: str) -> None:
     data = fetch(url)
     mv = manifest_version(data)
+    if mv != 3:
+        raise RuntimeError(f"{name} is MV{mv} — Chrome only loads MV3, refusing to bundle")
     target = target_dir / name
     target.write_bytes(data)
     print(f"{name}: {len(data)} bytes, manifest_version {mv}, from {url}")
-    if mv != 3:
-        print(f"  warning: {name} is MV{mv} — verify it loads via tools\\open_browser.bat")
 
 
 def download_extensions(target_dir: Path, force: bool = False) -> None:
@@ -60,8 +65,7 @@ def download_extensions(target_dir: Path, force: bool = False) -> None:
         return
     target_dir.mkdir(parents=True, exist_ok=True)
     save(target_dir, "cookies.crx", ISDCAC_URL)
-    release = json.loads(fetch(UBLOCK_API))
-    save(target_dir, "ublock.crx", release["assets"][0]["browser_download_url"])
+    save(target_dir, "ublock.crx", UBLOCK_URL)
 
 
 class DownloadExtensionsHook(BuildHookInterface):
