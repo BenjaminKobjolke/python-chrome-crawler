@@ -20,20 +20,30 @@ def test_headless_proxy_and_extra_extension_flags() -> None:
     assert options.extensions == []
 
 
-def test_proxy_credentials_enable_bidi() -> None:
+def test_proxy_credentials_load_auth_extension() -> None:
+    import json
+    from pathlib import Path
+
     config = ChromeCrawlerConfig(proxy="http://proxy.example.com:8080",
                                  proxy_user="alice", proxy_password="secret",
                                  use_bundled_extensions=False)
     options = build_options(config)
     assert "--proxy-server=http://proxy.example.com:8080" in options.arguments
-    assert options.enable_bidi is True
+    load_args = [arg for arg in options.arguments if arg.startswith("--load-extension=")]
+    assert len(load_args) == 1
+    extension_dir = Path(load_args[0].split("=", 1)[1])
+    manifest = json.loads((extension_dir / "manifest.json").read_text())
+    assert "webRequestAuthProvider" in manifest["permissions"]
+    background = (extension_dir / "background.js").read_text()
+    assert '"alice"' in background
+    assert '"secret"' in background
 
 
-def test_proxy_without_credentials_does_not_enable_bidi() -> None:
+def test_proxy_without_credentials_loads_no_auth_extension() -> None:
     config = ChromeCrawlerConfig(proxy="http://proxy.example.com:8080",
                                  use_bundled_extensions=False)
     options = build_options(config)
-    assert not options.enable_bidi
+    assert not any(arg.startswith("--load-extension") for arg in options.arguments)
 
 
 def test_extension_paths_bundled_sorted() -> None:

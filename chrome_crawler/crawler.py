@@ -7,7 +7,9 @@ retry-once on a dead driver.
 """
 from __future__ import annotations
 
+import json
 import logging
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from time import sleep
@@ -29,8 +31,8 @@ class ChromeCrawlerConfig:
     use_bundled_extensions: bool = True  # cookies.crx (consent dismiss) + ublock.crx
     extra_extensions: tuple[str, ...] = ()
     proxy: str | None = None  # --proxy-server value (scheme://host:port, no credentials)
-    # --proxy-server ignores user:pass, so credentials are answered via a BiDi
-    # network.authRequired handler (enable_bidi is set automatically when these are set).
+    # --proxy-server ignores user:pass (and Selenium's BiDi continueWithAuth times out on
+    # proxy 407s), so credentials are answered by a generated MV3 extension instead.
     proxy_user: str = ""
     proxy_password: str = ""
     settle_seconds: float = 3.0  # let extensions dismiss consent/popups after load
@@ -53,10 +55,40 @@ def build_options(config: ChromeCrawlerConfig) -> Options:
     if config.proxy:
         options.add_argument(f"--proxy-server={config.proxy}")
         if config.proxy_user:
-            options.enable_bidi = True
+            # --load-extension needs an unpacked dir; branded Chrome 137+ refuses it, but
+            # the default browser_version="stable" runs Chrome for Testing, which allows it.
+            auth_extension = _write_proxy_auth_extension(config.proxy_user, config.proxy_password)
+            options.add_argument(f"--load-extension={auth_extension}")
     for extension in extension_paths(config):
         options.add_extension(extension)
     return options
+
+
+def _write_proxy_auth_extension(user: str, password: str) -> str:
+    """Write an unpacked MV3 extension that answers (proxy) auth challenges.
+
+    Credentials land in a plain file under the OS temp dir for the browser's lifetime.
+    """
+    directory = Path(tempfile.mkdtemp(prefix="chrome_crawler_proxy_auth_"))
+    manifest = {
+        "name": "Proxy Auth",
+        "version": "1.0",
+        "manifest_version": 3,
+        "permissions": ["webRequest", "webRequestAuthProvider"],
+        "host_permissions": ["<all_urls>"],
+        "background": {"service_worker": "background.js"},
+    }
+    (directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    credentials = json.dumps({"username": user, "password": password})
+    (directory / "background.js").write_text(
+        "chrome.webRequest.onAuthRequired.addListener(\n"
+        f"  (details, callback) => {{ callback({{authCredentials: {credentials}}}); }},\n"
+        '  {urls: ["<all_urls>"]},\n'
+        '  ["asyncBlocking"]\n'
+        ");\n",
+        encoding="utf-8",
+    )
+    return str(directory)
 
 
 def extension_paths(config: ChromeCrawlerConfig) -> list[str]:
@@ -106,10 +138,6 @@ class ChromeCrawler:
                 "Page.addScriptToEvaluateOnNewDocument",
                 {"source": "Object.defineProperty(navigator,'webdriver',{get:()=>undefined})"},
             )
-            if self._config.proxy and self._config.proxy_user:
-                self._driver.network.add_auth_handler(
-                    self._config.proxy_user, self._config.proxy_password
-                )
         return self._driver
 
     def __enter__(self) -> ChromeCrawler:
