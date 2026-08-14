@@ -16,6 +16,13 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+# Force-include the gitignored .crx files the build hook downloads.
+artifacts = ["chrome_crawler/extensions/*.crx"]
+
+[tool.hatch.build.hooks.custom]
+# Runs hatch_build.py: downloads bundled extensions at wheel-build time.
+
 [tool.hatch.build.targets.wheel]
 packages = ["chrome_crawler"]
 

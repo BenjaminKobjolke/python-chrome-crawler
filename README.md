@@ -28,6 +28,10 @@ As a dependency in another project:
 uv add "git+https://github.com/BenjaminKobjolke/python-chrome-crawler.git"
 ```
 
+The bundled extensions are downloaded automatically while the wheel is built
+(hatchling build hook), so the first install of a new commit needs network
+access. Details: [docs/EXTENSIONS.md](docs/EXTENSIONS.md).
+
 For local development, clone the repo and run:
 
 ```bat

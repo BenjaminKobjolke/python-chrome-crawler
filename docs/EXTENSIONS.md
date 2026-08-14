@@ -44,9 +44,26 @@ Fix (both parts required):
   "I still don't care about cookies" (MV3); uBlock Origin full (MV2) still loads
   in Chrome for Testing.
 
+## How the .crx files get there
+
+The `.crx` files are **not committed** (gitignored) and not stored in the repo.
+A hatchling build hook (`hatch_build.py`, registered via
+`[tool.hatch.build.hooks.custom]`) downloads them at wheel-build time and
+`[tool.hatch.build] artifacts` force-includes them in the wheel despite the
+gitignore. Consumers install from git, so uv/pip build the wheel on their
+machine — plain `uv sync` downloads and bundles the extensions automatically.
+
+- The first `uv sync` of a new library commit needs network access; the build
+  fails with a clear error if the download fails. uv caches the built wheel per
+  git commit, so later syncs need no network.
+- The hook skips downloading when both files already exist (dev checkout).
+- The GitHub API is hit once per build for the ublock asset URL — rate limits
+  only matter for heavy unauthenticated CI churn.
+
 ## Updating the bundled .crx files
 
-Run `tools\update_extensions.bat`. It downloads the latest GitHub releases:
+Run `tools\update_extensions.bat` (thin wrapper over the download logic in
+`hatch_build.py`). It force-downloads the latest GitHub releases:
 
 - `cookies.crx` ← [OhMyGuus/I-Still-Dont-Care-About-Cookies](https://github.com/OhMyGuus/I-Still-Dont-Care-About-Cookies/releases)
   (`ISDCAC-chrome-source.zip` — a plain zip; renaming it to `.crx` is enough for
