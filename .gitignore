@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 uv.lock
+claude-plans
+chrome_crawler/extensions/ublock.crx
+chrome_crawler/extensions/cookies.crx
