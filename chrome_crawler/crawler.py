@@ -34,6 +34,10 @@ class ChromeCrawlerConfig:
 def build_options(config: ChromeCrawlerConfig) -> Options:
     options = Options()
     options.add_argument(f"--window-size={config.window_size}")
+    # Without these, Google serves a reCAPTCHA page to Selenium-driven Chrome
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
     if config.headless:
         options.add_argument("--headless=new")
     if config.proxy:
@@ -82,6 +86,10 @@ class ChromeCrawler:
         if self._driver is None:
             service = Service(self._config.driver_path) if self._config.driver_path else Service()
             self._driver = webdriver.Chrome(options=build_options(self._config), service=service)
+            self._driver.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {"source": "Object.defineProperty(navigator,'webdriver',{get:()=>undefined})"},
+            )
         return self._driver
 
     def __enter__(self) -> ChromeCrawler:
