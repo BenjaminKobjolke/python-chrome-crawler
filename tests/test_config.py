@@ -46,6 +46,17 @@ def test_proxy_without_credentials_loads_no_auth_extension() -> None:
     assert not any(arg.startswith("--load-extension") for arg in options.arguments)
 
 
+def test_user_data_dir_adds_flag() -> None:
+    config = ChromeCrawlerConfig(user_data_dir="C:/profiles/chrome", use_bundled_extensions=False)
+    options = build_options(config)
+    assert "--user-data-dir=C:/profiles/chrome" in options.arguments
+
+
+def test_no_user_data_dir_omits_flag() -> None:
+    options = build_options(ChromeCrawlerConfig())
+    assert not any(arg.startswith("--user-data-dir") for arg in options.arguments)
+
+
 def test_extension_paths_bundled_sorted() -> None:
     paths = extension_paths(ChromeCrawlerConfig())
     names = [path.rsplit("\\", 1)[-1].rsplit("/", 1)[-1] for path in paths]

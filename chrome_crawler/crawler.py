@@ -36,6 +36,9 @@ class ChromeCrawlerConfig:
     proxy_user: str = ""
     proxy_password: str = ""
     settle_seconds: float = 3.0  # let extensions dismiss consent/popups after load
+    # Persistent Chrome profile directory (--user-data-dir); cookies/consent survive runs,
+    # which sites treat as less bot-like. Empty = fresh ephemeral profile per launch.
+    user_data_dir: str = ""
     # Chrome 137+ branded builds refuse chromedriver's extension install, so default to
     # Chrome for Testing (Selenium Manager downloads + caches it). None = installed Chrome.
     browser_version: str | None = "stable"
@@ -52,6 +55,8 @@ def build_options(config: ChromeCrawlerConfig) -> Options:
         options.browser_version = config.browser_version
     if config.headless:
         options.add_argument("--headless=new")
+    if config.user_data_dir:
+        options.add_argument(f"--user-data-dir={config.user_data_dir}")
     if config.proxy:
         options.add_argument(f"--proxy-server={config.proxy}")
         if config.proxy_user:
