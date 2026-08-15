@@ -30,6 +30,12 @@ with ChromeCrawler(ChromeCrawlerConfig(user_data_dir=r"D:\myproject\chrome-profi
 Every later crawl with the same `user_data_dir` reuses that session. If a site flags the
 profile, delete the directory to start fresh.
 
+For a quick manual session without writing code, use the dev tool:
+
+```bat
+tools\open_browser.bat https://www.google.com --user-data-dir D:\myproject\chrome-profile
+```
+
 ## Why pointing at a real branded-Chrome profile mostly fails
 
 Setting `user_data_dir` to an installed Chrome's profile
