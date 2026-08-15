@@ -14,6 +14,8 @@ ai-chat-data-server's `ChromeWebCrawler`, generalized for reuse.
   won't load there).
 - Settle wait after each page load so extensions can dismiss popups.
 - Retry-once on a dead driver session.
+- Optional persistent profile via `user_data_dir` (cookies/logins survive runs).
+  Details: [docs/PROFILES.md](docs/PROFILES.md).
 
 ## Requirements
 
@@ -53,7 +55,10 @@ with ChromeCrawler(config) as crawler:
 
 Config options: `driver_path` (empty = Selenium Manager), `headless` (`--headless=new`),
 `window_size`, `use_bundled_extensions`, `extra_extensions`, `proxy` (`--proxy-server`
-value — Chrome ignores embedded `user:pass` credentials), `settle_seconds`.
+value) with `proxy_user`/`proxy_password` (answered via a generated MV3 extension),
+`settle_seconds`, `user_data_dir` (persistent profile, see
+[docs/PROFILES.md](docs/PROFILES.md)), `browser_version` (`"stable"` = Chrome for
+Testing, `None` = installed Chrome).
 
 ## Tests
 
